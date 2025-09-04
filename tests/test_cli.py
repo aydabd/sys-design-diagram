@@ -43,7 +43,7 @@ def test_cli_help(runner):
     assert "Command line interface for the sys-design-diagram package" in result.output
 
 
-@pytest.mark.parametrize("command", ["plantuml", "diagrams", "process-all"])
+@pytest.mark.parametrize("command", ["plantuml", "diagrams", "mermaid", "process-all"])
 def test_subcommand_help(runner, command):
     """Test the help command for subcommands."""
     result = runner.invoke(cli, [command, "--help"])
@@ -53,7 +53,12 @@ def test_subcommand_help(runner, command):
 
 @pytest.mark.parametrize(
     "command,process_method",
-    [("plantuml", "process_plantumls"), ("diagrams", "process_diagrams"), ("process-all", "process_all")],
+    [
+        ("plantuml", "process_plantumls"), 
+        ("diagrams", "process_diagrams"), 
+        ("mermaid", "process_mermaids"),
+        ("process-all", "process_all")
+    ],
 )
 def test_diagram_commands(mocker, runner, temp_designs_dir, mock_process_diagrams, command, process_method):
     """Test the diagram commands."""

@@ -5,6 +5,7 @@ This module provides a command line interface for the sys-design-diagram package
 Usage:
     sys-design-diagram plantuml -d <designs_dir> -o <output_dir>
     sys-design-diagram diagrams -d <designs_dir> -o <output_dir>
+    sys-design-diagram mermaid -d <designs_dir> -o <output_dir>
     sys-design-diagram process-all -d <designs_dir> -o <output_dir>
 
 Options:
@@ -14,7 +15,8 @@ Options:
 Commands:
     plantuml    Generate diagrams from PlantUML files.
     diagrams    Generate diagrams using the diagrams library.
-    process-all Generate diagrams using both PlantUML and diagrams library.
+    mermaid     Generate diagrams from Mermaid files.
+    process-all Generate diagrams using PlantUML, diagrams library, and Mermaid.
 """
 
 from pathlib import Path
@@ -99,13 +101,37 @@ def diagrams(designs_dir: Path, output_dir: Path) -> None:
     help="Directory to save generated diagrams.",
 )
 def process_all(designs_dir: Path, output_dir: Path) -> None:
-    """Generate diagrams using both PlantUML and diagrams library.
+    """Generate diagrams using PlantUML, diagrams library, and Mermaid.
 
     Args:
         designs_dir: Directory containing design directories.
         output_dir: Directory to save generated diagrams.
     """
     ProcessDiagrams.run(ProcessDiagrams.process_all, designs_dir, output_dir)
+
+
+@cli.command(name="mermaid")
+@click.option(
+    "-d",
+    "--designs-dir",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    help="Directory containing design directories.",
+)
+@click.option(
+    "-o",
+    "--output-dir",
+    type=click.Path(path_type=Path),
+    default=Path.cwd() / "sys-design-diagram-output",
+    help="Directory to save generated diagrams.",
+)
+def mermaid(designs_dir: Path, output_dir: Path) -> None:
+    """Generate diagrams from Mermaid files.
+
+    Args:
+        designs_dir: Directory containing design directories.
+        output_dir: Directory to save generated diagrams.
+    """
+    ProcessDiagrams.run(ProcessDiagrams.process_mermaids, designs_dir, output_dir)
 
 
 if __name__ == "__main__":
