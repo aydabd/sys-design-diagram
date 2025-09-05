@@ -54,10 +54,10 @@ def test_subcommand_help(runner, command):
 @pytest.mark.parametrize(
     "command,process_method",
     [
-        ("plantuml", "process_plantumls"), 
-        ("diagrams", "process_diagrams"), 
+        ("plantuml", "process_plantumls"),
+        ("diagrams", "process_diagrams"),
         ("mermaid", "process_mermaids"),
-        ("process-all", "process_all")
+        ("process-all", "process_all"),
     ],
 )
 def test_diagram_commands(mocker, runner, temp_designs_dir, mock_process_diagrams, command, process_method):
