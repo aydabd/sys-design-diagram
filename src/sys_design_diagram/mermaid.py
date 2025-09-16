@@ -138,5 +138,5 @@ class MermaidDiagram(DiagramInterface):
 
             return test_process.returncode == 0
 
-        except (FileNotFoundError, Exception):
+        except Exception:
             return False
