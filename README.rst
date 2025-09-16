@@ -20,13 +20,14 @@ A Docker container for generating system design diagrams using PlantUML and the 
 Overview
 ========
 
-System Design Diagram is a Docker container that provides tools to generate system design diagrams from PlantUML files and using the diagrams library. This container is designed for use in CI/CD pipelines and other automation workflows.
+System Design Diagram is a Docker container that provides tools to generate system design diagrams from PlantUML files, using the diagrams library, and from Mermaid files. This container is designed for use in CI/CD pipelines and other automation workflows.
 
 Features
 ========
 
 - Generate diagrams from PlantUML files
 - Generate diagrams using the diagrams library
+- Generate diagrams from Mermaid files
 - Process all diagrams in a given directory
 - Asynchronous processing for better performance
 
@@ -63,7 +64,8 @@ Commands
 
 - `diagrams`: Generate diagrams using the diagrams library.
 - `plantuml`: Generate diagrams from PlantUML files.
-- `process-all`: Generate diagrams using both PlantUML and diagrams library.
+- `mermaid`: Generate diagrams from Mermaid files.
+- `process-all`: Generate diagrams using PlantUML, diagrams library, and Mermaid.
 
 Examples
 ========
