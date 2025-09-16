@@ -3,9 +3,9 @@ name: Pypi package release
 on:
   push:
     branches: [ main ]
-    pull_request:
-      branches: [ main ]
-    tags: ['[0-9]+.[0-9]+.[0-9]*']
+    tags: ['[0-9]+\.[0-9]+\.[0-9]*']
+  pull_request:
+    branches: [ main ]
 
 permissions:
   contents: read
@@ -63,6 +63,7 @@ jobs:
     
     permissions:
       id-token: write
+      # no contents write needed here; release handled in separate job
     
     steps:
       - name: Set up Python
@@ -80,3 +81,49 @@ jobs:
         uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
           skip-existing: true
+
+  github_release:
+    name: Create GitHub release
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code (for changelog / tag context)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Download wheel distribution file
+        uses: actions/download-artifact@v5
+        with:
+          name: python-distribution-files
+          path: dist
+      - name: Extract version (no leading v)
+        id: version
+        run: |
+          TAG_REF="${GITHUB_REF##*/}"
+          CLEAN="${TAG_REF#v}"
+          echo "clean=${CLEAN}" >> "$GITHUB_OUTPUT"
+      - name: Determine prerelease flag
+        id: prerelease_flag
+        run: |
+          TAG="${GITHUB_REF##*/}"
+          if echo "$TAG" | grep -Eiq '(-|\.)((alpha|beta|rc)[0-9]*)'; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create GitHub Release (softprops)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          prerelease: ${{ steps.prerelease_flag.outputs.is_prerelease }}
+          files: |
+            dist/*
+          body: |
+            Released from tag ${{ github.ref_name }}
+            PyPI: https://pypi.org/project/sys-design-diagram/${{ steps.version.outputs.clean }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

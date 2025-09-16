@@ -73,6 +73,8 @@ DESIGN_1_FILES = [
         "exception_component.py",
         EXCEPTION_COMPONENT_DIAGRAM,
     ),
+    ("test1.mmd", "graph TD\n    A[Start] --> B{Is it?}\n    B -->|Yes| C[OK]\n    B -->|No| D[End]"),
+    ("test2.mmd", "sequenceDiagram\n    A->>B: Hello\n    B-->>A: Hi"),
 ]
 
 DESIGN_2_FILES = [
@@ -82,6 +84,7 @@ DESIGN_2_FILES = [
         "diagrams_component.py",
         VALID_COMPONENT_DIAGRAM,
     ),
+    ("test3.mmd", "graph LR\n    A[Square] --> B((Circle))"),
 ]
 
 

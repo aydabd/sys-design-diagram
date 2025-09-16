@@ -30,3 +30,15 @@ class DiagramsFileNotFoundError(DiagramsError):
 
 class DiagramsExecutionError(DiagramsError):
     """Raised when an error occurs during the execution of the diagram function."""
+
+
+class MermaidError(Exception):
+    """Base exception for Mermaid-related errors."""
+
+
+class MermaidFileNotFoundError(MermaidError):
+    """Raised when a Mermaid file is not found."""
+
+
+class MermaidExecutionError(MermaidError):
+    """Raised when an error occurs during the execution of the Mermaid command."""

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "sys-design-diagram"
 dynamic = ["version"]
-description = "A package for generating architecture diagrams using PlantUML and diagrams."
+description = "A package for generating architecture diagrams using PlantUML, diagrams, and Mermaid."
 authors = [
     { name = "Aydin Abdi", email = "ayd.abd@gmail.com" },
 ]
@@ -17,6 +17,7 @@ keywords = [
     "diagrams",
     "uml",
     "plantuml",
+    "mermaid",
     "system",
     "design",
 ]
