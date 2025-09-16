@@ -124,4 +124,3 @@ ENTRYPOINT ["sys-design-diagram"]
 
 # Set the default command to show the help message
 CMD ["--help"]
-

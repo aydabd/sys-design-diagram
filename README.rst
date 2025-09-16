@@ -226,4 +226,3 @@ For any questions or suggestions, please open an issue on the GitHub repository.
 
 .. _LICENSE: LICENSE
 .. _compose.yaml: compose.yaml
-
