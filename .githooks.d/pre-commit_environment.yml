@@ -16,6 +16,7 @@ dependencies:
   - ruff
   - mypy
   - coverage
+  - nodejs
   - pytest
   - pytest-asyncio
   - pytest-cov

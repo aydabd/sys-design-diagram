@@ -4,6 +4,7 @@ This module contains the tests for the CLI commands.
 """
 
 import pytest
+import os
 from click.testing import CliRunner
 from pathlib import Path
 from sys_design_diagram.cli import cli
@@ -95,3 +96,108 @@ def test_default_output_dir(runner, temp_designs_dir, mock_process_diagrams):
     mock_process_diagrams.run.assert_called_once_with(
         mock_process_diagrams.process_plantumls, temp_designs_dir, default_output_dir
     )
+
+
+def test_env_var_designs_dir(monkeypatch, runner, tmp_path, mock_process_diagrams):
+    """Test resolving designs dir from environment variable when -d omitted."""
+    designs_dir = tmp_path / "env_designs"
+    designs_dir.mkdir()
+    monkeypatch.setenv("SDD_DESIGNS_DIR", str(designs_dir))
+    result = runner.invoke(cli, ["plantuml"])  # no -d provided
+    assert result.exit_code == 0
+    default_output_dir = Path.cwd() / "sys-design-diagram-output"
+    mock_process_diagrams.run.assert_called_once_with(
+        mock_process_diagrams.process_plantumls, designs_dir, default_output_dir
+    )
+
+
+def test_env_var_output_dir(monkeypatch, runner, temp_designs_dir, mock_process_diagrams, tmp_path):
+    """Test resolving output dir from environment variable when -o omitted."""
+    out_dir = tmp_path / "env_out"
+    monkeypatch.setenv("SDD_OUTPUT_DIR", str(out_dir))
+    result = runner.invoke(cli, ["plantuml", "-d", str(temp_designs_dir)])
+    assert result.exit_code == 0
+    mock_process_diagrams.run.assert_called_once_with(
+        mock_process_diagrams.process_plantumls, temp_designs_dir, out_dir
+    )
+
+
+def test_conventional_designs_dir(monkeypatch, runner, mock_process_diagrams, tmp_path):
+    """Test using ./designs conventional directory when present and -d omitted."""
+    # Create a temporary cwd with a designs folder
+    designs_dir = tmp_path / "designs"
+    designs_dir.mkdir()
+
+    # Change directory to tmp_path so CLI discovers ./designs automatically
+    original_cwd = Path.cwd()
+    try:
+        os.chdir(tmp_path)
+        result = runner.invoke(cli, ["plantuml"])  # no -d provided
+        assert result.exit_code == 0
+        default_output_dir = tmp_path / "sys-design-diagram-output"
+        mock_process_diagrams.run.assert_called_once_with(
+            mock_process_diagrams.process_plantumls, designs_dir, default_output_dir
+        )
+    finally:
+        os.chdir(original_cwd)
+
+
+def test_explicit_output_overrides_env(monkeypatch, runner, temp_designs_dir, mock_process_diagrams, tmp_path):
+    """Explicit -o should override SDD_OUTPUT_DIR env var (covers explicit output branch)."""
+    env_out = tmp_path / "env_out"
+    monkeypatch.setenv("SDD_OUTPUT_DIR", str(env_out))
+    explicit_out = tmp_path / "explicit_out"
+    result = runner.invoke(cli, ["plantuml", "-d", str(temp_designs_dir), "-o", str(explicit_out)])
+    assert result.exit_code == 0
+    mock_process_diagrams.run.assert_called_once_with(
+        mock_process_diagrams.process_plantumls, temp_designs_dir, explicit_out
+    )
+
+
+def test_explicit_designs_dir_no_env(monkeypatch, runner, temp_designs_dir, mock_process_diagrams, tmp_path):
+    """Providing -d directly without env or conventional fallback (covers direct designs branch)."""
+    # Ensure env var not set and no ./designs in cwd influencing result
+    monkeypatch.delenv("SDD_DESIGNS_DIR", raising=False)
+    result = runner.invoke(cli, ["plantuml", "-d", str(temp_designs_dir)])
+    assert result.exit_code == 0
+    expected_output = Path.cwd() / "sys-design-diagram-output"
+    mock_process_diagrams.run.assert_called_once_with(
+        mock_process_diagrams.process_plantumls, temp_designs_dir, expected_output
+    )
+
+
+def test_missing_designs_dir_error(monkeypatch, runner, tmp_path):
+    """Error when no -d, no env var, and no ./designs directory (covers not-provided branch)."""
+    original_cwd = Path.cwd()
+    try:
+        os.chdir(tmp_path)
+        result = runner.invoke(cli, ["plantuml"])  # nothing provided
+        assert result.exit_code != 0
+        assert "Designs directory not provided" in result.output
+    finally:
+        os.chdir(original_cwd)
+
+
+def test_conventional_designs_is_file(monkeypatch, runner, tmp_path):
+    """If ./designs exists but is a file, still treat as missing (covers exists & not dir branch)."""
+    designs_file = tmp_path / "designs"
+    designs_file.write_text("not a directory")
+    original_cwd = Path.cwd()
+    try:
+        os.chdir(tmp_path)
+        result = runner.invoke(cli, ["plantuml"])  # no -d
+        assert result.exit_code != 0
+        assert "Designs directory not provided" in result.output
+    finally:
+        os.chdir(original_cwd)
+
+
+def test_env_var_designs_dir_missing(monkeypatch, runner):
+    """When SDD_DESIGNS_DIR points to a non-existent path, should error (covers not exists raise)."""
+    missing = Path.cwd() / "__definitely_missing_dir__"
+    if missing.exists():  # safety cleanup edge case
+        raise AssertionError("Sentinel path unexpectedly exists; choose different name")
+    monkeypatch.setenv("SDD_DESIGNS_DIR", str(missing))
+    result = runner.invoke(cli, ["plantuml"])  # no -d; env var used
+    assert result.exit_code != 0
+    assert f"'{missing}' does not exist" in result.output

@@ -79,6 +79,7 @@ coverage.xml
 tmp/**
 logs/**
 *output*/**
+*-output/
 tag_release.sh
 
 .DS_Store

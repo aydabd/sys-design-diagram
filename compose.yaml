@@ -9,11 +9,9 @@ services:
       context: .
       dockerfile: ./Dockerfile
     volumes:
-      - ./sdd-outputs/sdd-all:/home/sdd-user/sdd-all
-      - ./tests-data:/home/sdd-user/tests-data
-    networks:
-      - sdd-network
-    command: ["process-all", -d, "/home/sdd-user/tests-data", -o, "/home/sdd-user/sdd-all"]
+      - ./sdd-outputs/sdd-all:/output
+      - ./tests-data:/designs:ro
+    command: ["process-all", "-d", "/designs", "-o", "/output"]
 
   sdd-plantuml:
     image: sdd-test:latest
@@ -21,11 +19,9 @@ services:
       context: .
       dockerfile: ./Dockerfile
     volumes:
-      - ./sdd-outputs/sdd-plantuml:/home/sdd-user/sdd-plantuml
-      - ./tests-data:/home/sdd-user/tests-data
-    networks:
-      - sdd-network
-    command: ["plantuml", -d, "/home/sdd-user/tests-data", -o, "/home/sdd-user/sdd-plantuml"]
+      - ./sdd-outputs/sdd-plantuml:/output
+      - ./tests-data:/designs:ro
+    command: ["plantuml", "-d", "/designs", "-o", "/output"]
 
   sdd-diagrams:
     image: sdd-test:latest
@@ -33,24 +29,29 @@ services:
       context: .
       dockerfile: ./Dockerfile
     volumes:
-      - ./sdd-outputs/sdd-diagrams:/home/sdd-user/sdd-diagrams
-      - ./tests-data:/home/sdd-user/tests-data
-    networks:
-      - sdd-network
-    command: ["diagrams", -d, "/home/sdd-user/tests-data", -o, "/home/sdd-user/sdd-diagrams"]
-  
+      - ./sdd-outputs/sdd-diagrams:/output
+      - ./tests-data:/designs:ro
+    command: ["diagrams", "-d", "/designs", "-o", "/output"]
+
+  sdd-mermaids:
+    image: sdd-local:latest
+    build:
+      context: .
+      dockerfile: ./Dockerfile_local
+    volumes:
+      - ./sdd-outputs/sdd-mermaids:/output
+      - ./tests-data:/designs:ro
+    shm_size: 256m
+    command: ["mermaid", "-d", "/designs", "-o", "/output"]
+
   sdd-build-locally:
     image: sdd-local:latest
     build:
       context: .
       dockerfile: ./Dockerfile_local
     volumes:
-      - ./sdd-local-outputs:/home/sdd-user/sdd-local-outputs
-      - ./tests-data:/home/sdd-user/tests-data
-    networks:
-      - sdd-local-network
-    command: ["process-all", -d, "/home/sdd-user/tests-data", -o, "/home/sdd-user/sdd-local-outputs"]
+      - ./sdd-local-outputs:/output
+      - ./tests-data:/designs:ro
+    command: ["process-all", "-d", "/designs", "-o", "/output"]
 
-networks:
-  sdd-network: {}
-  sdd-local-network: {}
+networks: {}

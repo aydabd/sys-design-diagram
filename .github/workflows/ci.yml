@@ -41,6 +41,8 @@ jobs:
           cache-environment: true
           cache-downloads: false
           cache-environment-key: ${{ env.MICROMAMBA_CACHE_KEY }}
+      - name: Install mermaid-cli
+        run: micromamba run -n ${{ env.MICORMAMBA_ENV_NAME }} npm install -g @mermaid-js/mermaid-cli
   
   run-lint-tests:
     needs: prepare-micromamba-cache
