@@ -21,7 +21,7 @@ env:
   ENVIRONMENT_FILE: '.githooks.d/pre-commit_environment.yml'
   PRE_COMMIT_CONFIG: '.githooks.d/.pre-commit-config.yaml'
   TESTS_DATA: 'tests-data'
-  MICORMAMBA_ENV_NAME: mamba-githook
+  MICROMAMBA_ENV_NAME: sys-design-diagram-env
   # Cache key base on github cache rules between branch and pull request
   MICROMAMBA_CACHE_KEY: micromamba-env-key-${{ github.head_ref }}-${{ github.event_name }}
 
@@ -41,7 +41,7 @@ jobs:
           cache-environment: true
           cache-downloads: false
           cache-environment-key: ${{ env.MICROMAMBA_CACHE_KEY }}
-  
+
   run-lint-tests:
     needs: prepare-micromamba-cache
     runs-on: ubuntu-latest
@@ -96,7 +96,7 @@ jobs:
           key: buildx-cache-${{ runner.os }}-${{ matrix.platform }}-${{ github.sha }}
           restore-keys: |
             buildx-cache-${{ runner.os }}-${{ matrix.platform }}-
-      
+
       - name: Generate diagrams in container
         run: |
           set -euxo pipefail
@@ -116,7 +116,7 @@ jobs:
           set -euo pipefail
           echo "Deriving expected output PNGs from source design files..."
           expected_rel_paths=$(find "${GITHUB_WORKSPACE}/${{ env.TESTS_DATA }}" -type f \( -name 'diagrams*.py' -o -name 'diagram*.mmd' \) -printf '%P\n' \
-            | sed -E 's|^(design[^/]+)/([^/]+)\.(py|mmd)$|\1/\2.png|')
+            | sed -E 's#^(design[^/]+)/([^/]+)\.(py|mmd)$#\1/\2.png#')
           echo "Expected relative PNG files:" $expected_rel_paths
           missing=0
           for rel in $expected_rel_paths; do

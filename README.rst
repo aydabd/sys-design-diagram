@@ -43,7 +43,7 @@ Features
 * Mermaid rendering via ``@mermaid-js/mermaid-cli`` (Chromium bundled & sandbox-configured)
 * Python ``diagrams`` library support
 * Unified multi-run command: ``process-all``
-* Async processing with per-file task fan‑out
+* Async processing with per-file task fan-out
 * Graceful fallback placeholders for Mermaid if headless browser fails unexpectedly
 * Opinionated defaults + environment variable overrides
 
@@ -148,11 +148,11 @@ Using ``docker compose`` (see ``compose.yaml``):
 
 Compose services provided:
 
-* ``sdd-process-all`` – runs all processors on test data
-* ``sdd-plantuml`` – PlantUML only
-* ``sdd-diagrams`` – diagrams library only
-* ``sdd-mermaids`` – Mermaid only (local build variant)
-* ``sdd-build-locally`` – builds from workspace sources then ``process-all``
+* ``sdd-process-all`` - runs all processors on test data
+* ``sdd-plantuml`` - PlantUML only
+* ``sdd-diagrams`` - diagrams library only
+* ``sdd-mermaids`` - Mermaid only (local build variant)
+* ``sdd-build-locally`` - builds from workspace sources then ``process-all``
 
 Example (rebuild & run everything detached):
 
@@ -199,7 +199,7 @@ Testing
 Pre-commit hooks are used to run tests before each commit. To run the tests manually, use the following command:
 
 .. code-block:: bash
-    
+
     # Create a virtual environment
     python -m venv .venv
     pip install hatch

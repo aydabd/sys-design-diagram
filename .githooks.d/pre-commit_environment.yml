@@ -5,7 +5,7 @@
 # for more information for other options see:
 # https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html#conda-yaml-spec-files
 
-name: mamba-githook
+name: sys-design-diagram-env
 channels:
   - conda-forge
   - nodefaults
@@ -15,8 +15,8 @@ dependencies:
   - pre-commit
   - ruff
   - mypy
+  - markdownlint-cli2
   - coverage
-  - nodejs
   - pytest
   - pytest-asyncio
   - pytest-cov
