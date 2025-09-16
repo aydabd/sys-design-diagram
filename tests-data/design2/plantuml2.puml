@@ -1,6 +1,6 @@
 @startuml
 skinparam classAttributeIconSize 0
-class Component2 {
+class Plantuml2 {
     + String description
     + int id
 }

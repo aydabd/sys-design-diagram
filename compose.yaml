@@ -1,57 +1,55 @@
-# This file is used to run the sys-design-diagram service in a container
-# usage: docker compose up --build
-# The output will be saved in the sdd-output folder in the current directory
-# test-data folder contains the design files in puml and python format(diagrams library)
+###############################################################################
+# System Design Diagram - Docker Compose
+#
+# Usage examples:
+#   docker compose up --build process-all
+#   docker compose run --rm diagrams
+#   docker compose run --rm plantuml
+#   docker compose up --build               # start all services
+#
+# The CLI accepts env vars SDD_DESIGNS_DIR & SDD_OUTPUT_DIR so we can omit -d/-o.
+# Each service mounts test design sources read-only and a distinct output folder.
+###############################################################################
+
+x-base-local: &base-local
+  image: sdd-local:latest
+  build:
+    context: .
+    dockerfile: ./Dockerfile_local
+  environment:
+    SDD_DESIGNS_DIR: /designs
+    SDD_OUTPUT_DIR: /output
+  volumes:
+    - ./tests-data:/designs:ro
+
 services:
-  sdd-process-all:
-    image: sdd-test:latest
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+  mermaid:
+    <<: *base-local
+    shm_size: 256m        # extra shared memory for headless Chromium if needed
     volumes:
-      - ./sdd-outputs/sdd-all:/output
+      - ./sdd-outputs/mermaid:/output
       - ./tests-data:/designs:ro
-    command: ["process-all", "-d", "/designs", "-o", "/output"]
+    command: ["mermaid"]
 
-  sdd-plantuml:
-    image: sdd-test:latest
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+  plantuml:
+    <<: *base-local
     volumes:
-      - ./sdd-outputs/sdd-plantuml:/output
+      - ./sdd-outputs/plantuml:/output
       - ./tests-data:/designs:ro
-    command: ["plantuml", "-d", "/designs", "-o", "/output"]
+    command: ["plantuml"]
 
-  sdd-diagrams:
-    image: sdd-test:latest
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+  diagrams:
+    <<: *base-local
     volumes:
-      - ./sdd-outputs/sdd-diagrams:/output
+      - ./sdd-outputs/diagrams:/output
       - ./tests-data:/designs:ro
-    command: ["diagrams", "-d", "/designs", "-o", "/output"]
+    command: ["diagrams"]
 
-  sdd-mermaids:
-    image: sdd-local:latest
-    build:
-      context: .
-      dockerfile: ./Dockerfile_local
+  local-all:
+    <<: *base-local
     volumes:
-      - ./sdd-outputs/sdd-mermaids:/output
+      - ./sdd-outputs/all:/output
       - ./tests-data:/designs:ro
-    shm_size: 256m
-    command: ["mermaid", "-d", "/designs", "-o", "/output"]
-
-  sdd-build-locally:
-    image: sdd-local:latest
-    build:
-      context: .
-      dockerfile: ./Dockerfile_local
-    volumes:
-      - ./sdd-local-outputs:/output
-      - ./tests-data:/designs:ro
-    command: ["process-all", "-d", "/designs", "-o", "/output"]
+    command: ["process-all"]
 
 networks: {}

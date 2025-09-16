@@ -41,8 +41,6 @@ jobs:
           cache-environment: true
           cache-downloads: false
           cache-environment-key: ${{ env.MICROMAMBA_CACHE_KEY }}
-      - name: Install mermaid-cli
-        run: micromamba run -n ${{ env.MICORMAMBA_ENV_NAME }} npm install -g @mermaid-js/mermaid-cli
   
   run-lint-tests:
     needs: prepare-micromamba-cache
@@ -83,7 +81,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile
+          file: ./Dockerfile_local
           platforms: ${{ matrix.platform }}
           push: false
           load: true
@@ -99,9 +97,53 @@ jobs:
           restore-keys: |
             buildx-cache-${{ runner.os }}-${{ matrix.platform }}-
       
-      - name: Test docker image
+      - name: Generate diagrams in container
         run: |
+          set -euxo pipefail
           docker run --rm test-image:latest --version
           docker run --rm test-image:latest --help
           mkdir -p /tmp/tests-output
-          docker run --rm -v ${{ env.TESTS_DATA }}:/home/sdd-user/tests-data -v /tmp/tests-output:/home/sdd-user/sdd-out test-image:latest process-all -d /home/sdd-user/tests-data -o /home/sdd-user/sdd-out
+          chmod 777 /tmp/tests-output
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}/${{ env.TESTS_DATA }}:/home/sdd-user/tests-data:ro" \
+            -v /tmp/tests-output:/home/sdd-user/sdd-out \
+            test-image:latest -v process-all -d /home/sdd-user/tests-data -o /home/sdd-user/sdd-out
+          echo "Listing generated files (recursive):"
+          find /tmp/tests-output -maxdepth 4 -type f -print || true
+
+      - name: Verify generated diagrams
+        run: |
+          set -euo pipefail
+          echo "Deriving expected output PNGs from source design files..."
+          expected_rel_paths=$(find "${GITHUB_WORKSPACE}/${{ env.TESTS_DATA }}" -type f \( -name 'diagrams*.py' -o -name 'diagram*.mmd' \) -printf '%P\n' \
+            | sed -E 's|^(design[^/]+)/([^/]+)\.(py|mmd)$|\1/\2.png|')
+          echo "Expected relative PNG files:" $expected_rel_paths
+          missing=0
+          for rel in $expected_rel_paths; do
+            target="/tmp/tests-output/$rel"
+            if [ ! -s "$target" ]; then
+              echo "MISSING or EMPTY: $target" >&2
+              missing=$((missing+1))
+            else
+              echo "OK: $target"
+            fi
+          done
+          expected_min=7
+          actual_count=$(find /tmp/tests-output -type f -name '*.png' | wc -l | tr -d ' ')
+          echo "Total PNG files found: $actual_count"
+          if [ "$actual_count" -lt "$expected_min" ]; then
+            echo "ERROR: expected at least $expected_min PNG files, got $actual_count" >&2
+            exit 1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            echo "ERROR: $missing expected diagram file(s) missing or empty" >&2
+            exit 1
+          fi
+          echo "All expected diagram files are present and count threshold met."
+
+      - name: Upload generated diagrams (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-diagrams-${{ matrix.platform }}
+          path: /tmp/tests-output

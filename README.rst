@@ -111,7 +111,7 @@ Create a local directory with your design sources (``.puml``, ``.mmd``, Python d
 
     tree my-designs/
     my-designs/
-      component1.puml
+      plantuml1.puml
       sequence.mmd
       infra.py
 

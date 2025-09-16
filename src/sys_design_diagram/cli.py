@@ -59,9 +59,15 @@ def _resolve_dirs(designs_dir: Path | None, output_dir: Path | None) -> Tuple[Pa
         if env_designs:
             designs_dir = Path(env_designs)
         else:
+            # Conventional relative directory ./designs
             conventional = Path.cwd() / "designs"
             if conventional.exists() and conventional.is_dir():
                 designs_dir = conventional
+            else:
+                # Common container mount point
+                container_designs = Path("/designs")
+                if container_designs.exists() and container_designs.is_dir():
+                    designs_dir = container_designs
     if designs_dir is None:
         raise click.BadParameter(
             "Designs directory not provided. Use -d/--designs-dir, set SDD_DESIGNS_DIR, or create a ./designs folder."
@@ -74,6 +80,11 @@ def _resolve_dirs(designs_dir: Path | None, output_dir: Path | None) -> Tuple[Pa
         env_output = os.getenv("SDD_OUTPUT_DIR")
         if env_output:
             output_dir = Path(env_output)
+        else:
+            # Common container mount point for output
+            container_output = Path("/output")
+            if container_output.exists() and container_output.is_dir():
+                output_dir = container_output
     if output_dir is None:
         output_dir = default_output
     output_dir.mkdir(parents=True, exist_ok=True)

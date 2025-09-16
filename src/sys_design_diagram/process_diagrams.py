@@ -34,9 +34,9 @@ class ProcessDiagrams:
         try:
             for design_dir in designs_dir.iterdir():
                 for uml_file in design_dir.glob("*.puml"):
-                    # Create a directory for each design directory in current directory
-                    current_dir = Path.cwd()
-                    output_file_path = current_dir / output_dir / design_dir.name
+                    # Support absolute or relative output_dir transparently
+                    output_base = output_dir if output_dir.is_absolute() else (Path.cwd() / output_dir)
+                    output_file_path = output_base / design_dir.name
                     output_file_path.mkdir(parents=True, exist_ok=True)
                     diagram = PlantUMLDiagram(uml_file)
                     tasks.append(ProcessDiagrams._run_task(diagram.create, output_file_path))
@@ -76,9 +76,8 @@ class ProcessDiagrams:
         try:
             for design_dir in designs_dir.iterdir():
                 for mermaid_file in design_dir.glob("*.mmd"):
-                    # Create a directory for each design directory in current directory
-                    current_dir = Path.cwd()
-                    output_file_path = current_dir / output_dir / design_dir.name
+                    output_base = output_dir if output_dir.is_absolute() else (Path.cwd() / output_dir)
+                    output_file_path = output_base / design_dir.name
                     output_file_path.mkdir(parents=True, exist_ok=True)
                     diagram = MermaidDiagram(mermaid_file)
                     tasks.append(ProcessDiagrams._run_task(diagram.create, output_file_path))
