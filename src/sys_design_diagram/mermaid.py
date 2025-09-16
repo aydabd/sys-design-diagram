@@ -126,10 +126,7 @@ class MermaidDiagram(DiagramInterface):
             # Clean up temp files
             import os
 
-            try:
-                os.unlink(temp_mmd)
-                os.unlink(temp_png)
-            except:
+            except OSError:
                 pass
 
             # If Chrome is missing, we'll get an error about Chrome
