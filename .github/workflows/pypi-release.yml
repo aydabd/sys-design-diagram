@@ -121,9 +121,9 @@ jobs:
           name: Release ${{ github.ref_name }}
           prerelease: ${{ steps.prerelease_flag.outputs.is_prerelease }}
           files: |
-            dist/*
+            dist/*.whl
+          generate_release_notes: true
           body: |
-            Released from tag ${{ github.ref_name }}
             PyPI: https://pypi.org/project/sys-design-diagram/${{ steps.version.outputs.clean }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

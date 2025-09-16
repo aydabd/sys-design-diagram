@@ -13,6 +13,14 @@ A Docker container for generating system design diagrams using PlantUML and the 
 .. image:: https://github.com/aydabd/sys-design-diagram/actions/workflows/ci.yml/badge.svg
    :target: https://github.com/aydabd/sys-design-diagram/actions/workflows/ci.yml
 
+.. image:: https://img.shields.io/pypi/v/sys-design-diagram.svg
+    :target: https://pypi.org/project/sys-design-diagram/
+    :alt: PyPI Version
+
+.. image:: https://img.shields.io/docker/pulls/aydabd/sys-design-diagram.svg
+    :target: https://hub.docker.com/r/aydabd/sys-design-diagram
+    :alt: Docker Pulls
+
 .. contents::
     :local:
     :depth: 2
@@ -20,16 +28,24 @@ A Docker container for generating system design diagrams using PlantUML and the 
 Overview
 ========
 
-System Design Diagram is a Docker container that provides tools to generate system design diagrams from PlantUML files, using the diagrams library, and from Mermaid files. This container is designed for use in CI/CD pipelines and other automation workflows.
+System Design Diagram is a container & Python CLI that generates diagrams from:
+
+* PlantUML (``*.puml``)
+* Python ``diagrams`` library modules (``*.py``)
+* Mermaid (``*.mmd``)
+
+It targets automation workflows (CI/CD, docs pipelines) while staying simple for local use.
 
 Features
 ========
 
-- Generate diagrams from PlantUML files
-- Generate diagrams using the diagrams library
-- Generate diagrams from Mermaid files
-- Process all diagrams in a given directory
-- Asynchronous processing for better performance
+* PlantUML rendering (using system ``plantuml`` + Graphviz)
+* Mermaid rendering via ``@mermaid-js/mermaid-cli`` (Chromium bundled & sandbox-configured)
+* Python ``diagrams`` library support
+* Unified multi-run command: ``process-all``
+* Async processing with per-file task fan‑out
+* Graceful fallback placeholders for Mermaid if headless browser fails unexpectedly
+* Opinionated defaults + environment variable overrides
 
 Installation
 ============
@@ -46,35 +62,121 @@ Make sure you have Docker installed and running on your system.
 Usage
 =====
 
-The Docker container provides several commands to generate diagrams:
+The entrypoint is ``sys-design-diagram``. Subcommands:
+
+* ``plantuml`` – Generate diagrams from PlantUML files
+* ``diagrams`` – Generate diagrams with the diagrams library
+* ``mermaid`` – Generate diagrams from Mermaid files
+* ``process-all`` – Run all of the above (recommended for batch pipelines)
+
+Global option:
+
+* ``-v / --verbose`` – more logging (including per-task timings)
+
+Defaults & Resolution Order
+---------------------------
+
+Design & output directories are resolved in this order (per flag):
+
+1. CLI option (``-d`` / ``-o``)
+2. Environment variable (``SDD_DESIGNS_DIR`` / ``SDD_OUTPUT_DIR``)
+3. Conventional path: ``./designs`` (if it exists) for designs; ``./sys-design-diagram-output`` for output (created on demand)
+
+Inside official Docker images, you typically mount:
+
+* ``/designs`` – input (read-only recommended)
+* ``/output`` – generated diagrams
+
+Environment Variables
+---------------------
+
+Core overrides:
+
+* ``SDD_DESIGNS_DIR`` – override designs path
+* ``SDD_OUTPUT_DIR`` – override output path
+
+Mermaid / Puppeteer tuning:
+
+* ``MERMAID_PUPPETEER_CONFIG`` – path to injected Puppeteer JSON (set by image to ``/opt/puppeteer-config.json`` adding ``--no-sandbox`` etc.)
+* ``SDD_MERMAID_EXTRA_ARGS`` – extra raw arguments appended to ``mmdc`` (e.g. ``--scale 1.2 --theme dark``)
+
+Note: If Chromium launch fails (sandbox / missing dependency) a placeholder PNG containing the original Mermaid source is written so pipelines stay green.
+
+Quick Start (Docker)
+--------------------
+
+Create a local directory with your design sources (``.puml``, ``.mmd``, Python diagrams):
 
 .. code-block:: bash
 
-    docker run --rm --it ghcr.io/aydabd/sys-design-diagram:latest [OPTIONS] COMMAND [ARGS]...
+    tree my-designs/
+    my-designs/
+      component1.puml
+      sequence.mmd
+      infra.py
 
-Options
--------
-
-- `-v`, `--verbose`: Enable verbose mode.
-- `--version`: Show the version and exit.
-- `--help`: Show the help message and exit.
-
-Commands
---------
-
-- `diagrams`: Generate diagrams using the diagrams library.
-- `plantuml`: Generate diagrams from PlantUML files.
-- `mermaid`: Generate diagrams from Mermaid files.
-- `process-all`: Generate diagrams using PlantUML, diagrams library, and Mermaid.
-
-Examples
-========
-
-There is a `compose.yaml`_ file which can be used to generate diagrams from a tests-data directory. To use the `compose.yaml` file, run the following command:
+Run all processors (preferred):
 
 .. code-block:: bash
 
-    docker-compose up --build
+    docker run --rm -v "$PWD/my-designs:/designs:ro" -v "$PWD/out:/output" ghcr.io/aydabd/sys-design-diagram:latest process-all
+
+Run only PlantUML:
+
+.. code-block:: bash
+
+    docker run --rm -v "$PWD/my-designs:/designs:ro" -v "$PWD/out:/output" ghcr.io/aydabd/sys-design-diagram:latest plantuml
+
+Override paths with env vars (custom layout):
+
+.. code-block:: bash
+
+    docker run --rm \
+        -e SDD_DESIGNS_DIR=/work/src/designs \
+        -e SDD_OUTPUT_DIR=/work/build/diagrams \
+        -v "$PWD/my-designs:/work/src/designs:ro" \
+        -v "$PWD/out:/work/build/diagrams" \
+        ghcr.io/aydabd/sys-design-diagram:latest process-all
+
+Verbose mode:
+
+.. code-block:: bash
+
+    docker run --rm -v "$PWD/my-designs:/designs:ro" -v "$PWD/out:/output" ghcr.io/aydabd/sys-design-diagram:latest -v process-all
+
+Using ``docker compose`` (see ``compose.yaml``):
+
+Compose services provided:
+
+* ``sdd-process-all`` – runs all processors on test data
+* ``sdd-plantuml`` – PlantUML only
+* ``sdd-diagrams`` – diagrams library only
+* ``sdd-mermaids`` – Mermaid only (local build variant)
+* ``sdd-build-locally`` – builds from workspace sources then ``process-all``
+
+Example (rebuild & run everything detached):
+
+.. code-block:: bash
+
+    docker compose up --build -d sdd-process-all
+    # or just Mermaid
+    docker compose up --build sdd-mermaids
+
+Outputs land in the corresponding subdirectories under ``./sdd-outputs`` or ``./sdd-local-outputs`` as defined in the compose file.
+
+Mermaid Rendering Notes
+-----------------------
+
+Chromium + mermaid-cli are bundled. A Puppeteer config (``/opt/puppeteer-config.json``) adds sandbox‑relaxing flags suitable for rootless containers. If you operate in a hardened environment and can enable the system Chromium sandbox (setuid / userns), you may build a derivative image removing ``--no-sandbox`` flags.
+
+To append more Mermaid CLI arguments (e.g. scaling, theme):
+
+.. code-block:: bash
+
+    docker run --rm -e SDD_MERMAID_EXTRA_ARGS="--scale 1.5 --theme dark" \
+        -v "$PWD/my-designs:/designs:ro" -v "$PWD/out:/output" ghcr.io/aydabd/sys-design-diagram:latest mermaid
+
+If rendering fails due to a transient headless issue, a placeholder file is created instead of failing the whole run.
 
 Development
 ===========

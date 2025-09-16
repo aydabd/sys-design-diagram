@@ -9,6 +9,8 @@ ENV USER_NAME=sdd-user
 ENV GROUP_NAME=sdd-group
 ENV HOME=/home/$USER_NAME
 ENV PATH="$HOME/.local/bin:$PATH"
+ENV SDD_DESIGNS_DIR=/designs
+ENV SDD_OUTPUT_DIR=/output
 
 # Set the working directory
 WORKDIR $HOME
@@ -68,13 +70,40 @@ LABEL org.opencontainers.image.title="${IMAGE_NAME}" \
       org.opencontainers.image.version="${IMAGE_VERSION}" \
       org.opencontainers.image.revision="${GIT_COMMIT}"
 
-# Install runtime dependencies
+## Install runtime dependencies (PlantUML, Graphviz, Node, Chromium, Fonts + mermaid-cli)
+## NOTE: Original Dockerfile used Alpine package names for fonts; here we translate to Debian package names.
 USER root
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends plantuml graphviz && \
-    apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+        plantuml \
+        graphviz \
+        nodejs \
+        npm \
+        chromium \
+        fonts-noto-cjk \
+        fonts-noto-color-emoji \
+        fonts-terminus \
+        fonts-dejavu \
+        fonts-freefont-ttf \
+        fonts-font-awesome \
+        fonts-inconsolata \
+        fonts-linuxlibertine \
+        fontconfig && \
+    fc-cache -f && \
+    npm install -g @mermaid-js/mermaid-cli && \
+    npm cache clean --force && \
+    rm -rf /var/lib/apt/lists/* /root/.npm /tmp/*
+
+# Environment variables for puppeteer / mermaid-cli
+ENV PUPPETEER_SKIP_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
+    CHROME_BIN=/usr/bin/chromium \
+    MERMAID_PUPPETEER_CONFIG=/opt/puppeteer-config.json
+
+# Provide backward compatibility name if chromium-browser is expected anywhere
+RUN if [ ! -e /usr/bin/chromium-browser ] && [ -e /usr/bin/chromium ]; then ln -s /usr/bin/chromium /usr/bin/chromium-browser; fi \
+    && echo '{"args": ["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage","--disable-gpu","--disable-software-rasterizer"]}' > /opt/puppeteer-config.json \
+    && chmod 644 /opt/puppeteer-config.json
 
 # Switch back to the non-root user
 USER $USER_NAME
@@ -82,8 +111,13 @@ USER $USER_NAME
 # Copy the installed dependencies from the builder image
 COPY --from=builder --chown=$USER_NAME:$GROUP_NAME $HOME/.local $HOME/.local
 
-# Expose the output directory as a volume
-VOLUME $HOME/sdd-outputs
+# Create conventional mount points for designs and output (kept outside $HOME for clarity)
+USER root
+RUN mkdir -p /designs /output && chown -R $USER_NAME:$GROUP_NAME /designs /output
+USER $USER_NAME
+
+# Expose the output directory as a volume (backward compatible name kept via ENV)
+VOLUME /output
 
 # Set the entrypoint to the installed package which will create the diagrams in output directory
 ENTRYPOINT ["sys-design-diagram"]

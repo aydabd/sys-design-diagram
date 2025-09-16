@@ -1,141 +1,61 @@
-# Mermaid Diagram Support
+# Mermaid Support (Essentials)
 
-This document provides information about using Mermaid diagrams with sys-design-diagram.
+`sys-design-diagram` supports Mermaid (`*.mmd`) alongside PlantUML (`*.puml`) and diagrams Python files (`*.py`). The official images (`aydabd/sys-design-diagram` / `ghcr.io/aydabd/sys-design-diagram`) include `@mermaid-js/mermaid-cli` **and** a Chromium binary (headless) pre-installed—no host Node.js setup required.
 
-## Overview
+## Quick Usage
 
-The sys-design-diagram package now supports Mermaid diagrams (`.mmd` files) alongside PlantUML (`.puml`) and diagrams library (`.py`) files.
-
-## Prerequisites
-
-For full Mermaid functionality, you need:
-
-1. **Node.js** (v14 or later)
-2. **Mermaid CLI**: Install with `npm install -g @mermaid-js/mermaid-cli`
-3. **Chrome/Chromium browser** or equivalent for rendering
-
-## Installation
-
-```bash
-# Install Node.js (if not already installed)
-# On Ubuntu/Debian:
-curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Install Mermaid CLI
-npm install -g @mermaid-js/mermaid-cli
-
-# Install Chrome (if not already installed)
-sudo apt-get install -y chromium-browser
-```
-
-## Usage
-
-### Processing Mermaid Files Only
-
+Process only Mermaid files:
 ```bash
 sys-design-diagram mermaid -d designs/ -o output/
 ```
 
-### Processing All Diagram Types
-
+Process everything (PlantUML, diagrams, Mermaid):
 ```bash
 sys-design-diagram process-all -d designs/ -o output/
 ```
 
-This command will process:
-- PlantUML files (*.puml)
-- Python diagram files (*.py)
-- Mermaid files (*.mmd)
+## Rendering & Fallback Behavior
 
-## Mermaid File Examples
+The image bundles Chromium and a Puppeteer config at `/opt/puppeteer-config.json` with flags:
 
-### Flowchart
+```json
+{ "args": ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--disable-software-rasterizer"] }
+```
+
+This makes headless launches stable in rootless containers. If Chromium fails to launch (rare: kernel restrictions, seccomp, AppArmor) the tool writes a **placeholder PNG** containing the original Mermaid source instead of failing the entire run.
+
+To harden (enable real sandboxing) build a derivative image removing the "no-sandbox" arguments and enabling user namespaces / setuid sandbox depending on distro.
+
+Environment variables that influence Mermaid rendering:
+
+| Variable | Purpose |
+|----------|---------|
+| `MERMAID_PUPPETEER_CONFIG` | Path to Puppeteer JSON (auto-set to `/opt/puppeteer-config.json`). |
+| `SDD_MERMAID_EXTRA_ARGS` | Extra CLI args appended to `mmdc` (e.g. `--scale 1.3 --theme dark`). |
+
+Example with scaling & dark theme:
+
+```bash
+docker run --rm \
+  -e SDD_MERMAID_EXTRA_ARGS="--scale 1.3 --theme dark" \
+  -v "$PWD/designs:/designs:ro" -v "$PWD/out:/output" \
+  ghcr.io/aydabd/sys-design-diagram:latest mermaid
+```
+
+## Minimal Mermaid Example
 ```mermaid
 graph TD
-    A[Start] --> B{Is it?}
-    B -->|Yes| C[OK]
-    B -->|No| D[End]
-    C --> D
+  A[Start] --> B{Decision?}
+  B -->|Yes| C[Path 1]
+  B -->|No| D[Path 2]
+  C --> E[End]
+  D --> E
 ```
 
-### Sequence Diagram
-```mermaid
-sequenceDiagram
-    participant A as Alice
-    participant B as Bob
-    A->>B: Hello Bob, how are you?
-    B-->>A: Great!
-```
+## Tips
+* Prefer `process-all` for mixed repositories to avoid multiple directory walks.
+* If you see placeholder PNGs, inspect logs for sandbox / Chromium messages.
+* Use `-v` (verbose) to surface per-task timings and any suppressed warnings.
+* For deterministic themes across diagrams, supply `SDD_MERMAID_EXTRA_ARGS="--theme neutral"`.
 
-### Git Graph
-```mermaid
-gitgraph
-    commit
-    commit
-    branch develop
-    checkout develop
-    commit
-    commit
-    checkout main
-    merge develop
-```
-
-## Fallback Mode
-
-When Chrome is not available (e.g., in CI environments), the system automatically creates placeholder files containing the original Mermaid content. This ensures the workflow continues without breaking.
-
-## Directory Structure
-
-```
-designs/
-├── design1/
-│   ├── component1.puml
-│   ├── architecture.py
-│   └── flow.mmd          # Mermaid diagram
-└── design2/
-    ├── sequence.mmd      # Mermaid diagram
-    └── overview.puml
-```
-
-## Output
-
-Generated diagrams are saved as PNG files:
-
-```
-output/
-├── design1/
-│   ├── component1.png
-│   ├── architecture.png
-│   └── flow.png          # Generated from flow.mmd
-└── design2/
-    ├── sequence.png      # Generated from sequence.mmd
-    └── overview.png
-```
-
-## Troubleshooting
-
-### Chrome Not Found Error
-
-If you see errors about Chrome not being found:
-
-1. Install Chrome/Chromium: `sudo apt-get install chromium-browser`
-2. Or install via snap: `sudo snap install chromium`
-3. For headless environments, consider using the fallback mode
-
-### Mermaid CLI Not Found
-
-If `mmdc` command is not found:
-
-1. Install Node.js
-2. Install Mermaid CLI: `npm install -g @mermaid-js/mermaid-cli`
-3. Ensure npm global bin is in your PATH
-
-### CI/CD Environments
-
-For CI/CD pipelines, you may want to use the fallback mode intentionally. The system will:
-
-1. Detect when Chrome is unavailable
-2. Create placeholder files with the original Mermaid content
-3. Log warnings but continue processing
-4. Allow the pipeline to complete successfully
+That’s all you need for Mermaid usage. For more examples, just add additional `.mmd` files under your design folders.

@@ -5,7 +5,7 @@ This module is used to generate diagrams from the design files.
 
 import asyncio
 from pathlib import Path
-from typing import Any, Callable, Coroutine, TypeVar
+from typing import Any, Callable, Coroutine, TypeVar, Protocol
 
 from sys_design_diagram.diagrams import DiagramsDiagram
 from sys_design_diagram.log import logger
@@ -13,6 +13,10 @@ from sys_design_diagram.mermaid import MermaidDiagram
 from sys_design_diagram.plantuml import PlantUMLDiagram
 
 T = TypeVar("T")
+
+
+class _AsyncProcessor(Protocol):
+    def __call__(self, designs_dir: Path, output_dir: Path) -> Coroutine[Any, Any, None]: ...  # pragma: no cover
 
 
 class ProcessDiagrams:
@@ -109,7 +113,7 @@ class ProcessDiagrams:
             logger.error(f"Task failed with error: {e}")
 
     @staticmethod
-    def run(coro_func: Callable[..., Coroutine[Any, Any, T]], *args: Any, **kwargs: Any) -> None:
+    def run(coro_func: _AsyncProcessor, *args: Any, **kwargs: Any) -> None:
         """Run the given coroutine function with the given arguments.
 
         Args:

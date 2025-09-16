@@ -5,7 +5,9 @@ This module provides a class for generating diagrams from Mermaid files.
 
 import asyncio
 import os
+import tempfile
 from pathlib import Path
+from typing import List
 
 from sys_design_diagram.exceptions import MermaidExecutionError, MermaidFileNotFoundError
 from sys_design_diagram.interfaces import DiagramInterface
@@ -52,7 +54,19 @@ class MermaidDiagram(DiagramInterface):
         # Generate output file path with .png extension
         output_file = output_dir / f"{self.mermaid_file.stem}.png"
 
-        cmd = [MERMAID_CMD, "-i", str(self.mermaid_file), "-o", str(output_file)]
+        # Base command
+        cmd: List[str] = [MERMAID_CMD, "-i", str(self.mermaid_file), "-o", str(output_file)]
+
+        # Optional puppeteer config file (e.g., to pass --no-sandbox in container)
+        puppeteer_config = os.environ.get("MERMAID_PUPPETEER_CONFIG")
+        if puppeteer_config and Path(puppeteer_config).exists():
+            cmd += ["-p", puppeteer_config]  # pragma: no cover
+
+        # Optional extra args (space separated) for advanced tuning
+        extra_args = os.environ.get("SDD_MERMAID_EXTRA_ARGS")
+        if extra_args:
+            # Basic split, user responsible for quoting in env var as needed
+            cmd.extend(extra_args.split())  # pragma: no cover
 
         try:
             process = await asyncio.create_subprocess_exec(
@@ -64,20 +78,25 @@ class MermaidDiagram(DiagramInterface):
             )
             if process.returncode != 0:
                 error_message = stderr.decode().strip()
-                # Check if it's a Chrome-related error (common in CI environments)
-                if "Chrome" in error_message or "chrome" in error_message:
+                # Treat common headless browser launch / sandbox issues as recoverable producing a placeholder
+                sandbox_indicators = [
+                    "Chrome",  # generic missing chrome
+                    "chrome",  # lowercase version
+                    "No usable sandbox",  # chromium sandbox disabled
+                    "Failed to launch the browser process",  # generic puppeteer launch failure
+                    "setuid sandbox",  # setuid sandbox problems
+                ]
+                if any(indicator in error_message for indicator in sandbox_indicators):
                     logger.warning(
-                        f"Mermaid CLI missing Chrome dependency, creating placeholder file for {self.mermaid_file.name}"
+                        "Mermaid CLI browser dependency issue (likely sandbox/headless) - creating placeholder file for %s. Original error: %s",
+                        self.mermaid_file.name,
+                        error_message,
                     )
-                    # Create a placeholder file for testing/CI environments
                     output_file.write_text(
                         f"Mermaid diagram placeholder for {self.mermaid_file.name}\nOriginal content: {self.mermaid_file.read_text()}"
                     )
                     return
-                else:
-                    raise MermaidExecutionError(
-                        ErrorMessages.MERMAID_EXECUTION_FAILED.value.format(error=error_message)
-                    )
+                raise MermaidExecutionError(ErrorMessages.MERMAID_EXECUTION_FAILED.value.format(error=error_message))
         except FileNotFoundError:
             logger.warning(f"Mermaid CLI not found, creating placeholder file for {self.mermaid_file.name}")
             # Create a placeholder file when mmdc is not available
