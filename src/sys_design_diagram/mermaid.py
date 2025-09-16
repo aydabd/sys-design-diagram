@@ -4,6 +4,7 @@ This module provides a class for generating diagrams from Mermaid files.
 """
 
 import asyncio
+import os
 from pathlib import Path
 
 from sys_design_diagram.exceptions import MermaidExecutionError, MermaidFileNotFoundError
@@ -124,9 +125,10 @@ class MermaidDiagram(DiagramInterface):
             _, test_stderr = await test_process.communicate()
 
             # Clean up temp files
-            import os
-
-            except OSError:
+            try:
+                os.unlink(temp_mmd)
+                os.unlink(temp_png)
+            except:
                 pass
 
             # If Chrome is missing, we'll get an error about Chrome
