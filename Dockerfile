@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Base stage
-FROM python:3.12-slim AS base
+FROM python:3.13-slim AS base
 LABEL maintainer="Aydin A."
 
 # Set environment variables
