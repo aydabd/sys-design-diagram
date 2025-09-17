@@ -5,15 +5,101 @@
 
 version: 2
 updates:
-  - package-ecosystem: "pip" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  # Python dependencies (pyproject.toml, requirements.txt)
+  - package-ecosystem: "pip"
+    directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    reviewers:
+      - "aydabd"
+    assignees:
+      - "aydabd"
+    labels:
+      - "dependencies"
+      - "python"
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "deps(python)"
+      include: "scope"
+
+  # GitHub Actions workflows
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    reviewers:
+      - "aydabd"
+    assignees:
+      - "aydabd"
+    labels:
+      - "dependencies"
+      - "github-actions"
     groups:
-      all-dependencies:
+      github-actions:
         patterns:
           - "*"
+    commit-message:
+      prefix: "deps(actions)"
+      include: "scope"
+
+  # Docker dependencies (Dockerfile, Dockerfile_local)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+    reviewers:
+      - "aydabd"
+    assignees:
+      - "aydabd"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "deps(docker)"
+      include: "scope"
+
+  # Conda environment dependencies
+  - package-ecosystem: "conda"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+    reviewers:
+      - "aydabd"
+    assignees:
+      - "aydabd"
+    labels:
+      - "dependencies"
+      - "conda"
+    commit-message:
+      prefix: "deps(conda)"
+      include: "scope"
+
+  # Pre-commit environment dependencies
+  - package-ecosystem: "conda"
+    directory: "/.githooks.d"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:30"
+    reviewers:
+      - "aydabd"
+    assignees:
+      - "aydabd"
+    labels:
+      - "dependencies"
+      - "conda"
+      - "pre-commit"
+    commit-message:
+      prefix: "deps(pre-commit)"
+      include: "scope"
