@@ -55,7 +55,7 @@ jobs:
 
       - name: Upload wheel distribution file as artifacts
         id: wheel-distribution
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: python-distribution-files
           path: dist/*
@@ -79,7 +79,7 @@ jobs:
           python-version: 3.12
 
       - name: Download wheel distribution file
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: python-distribution-files
           path: dist
@@ -102,7 +102,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Download wheel distribution file
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: python-distribution-files
           path: dist
@@ -191,7 +191,7 @@ jobs:
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest ${{ matrix.platform }} to Docker Hub
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/*
@@ -205,7 +205,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download digests
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           path: /tmp/digests
           pattern: digests-*
