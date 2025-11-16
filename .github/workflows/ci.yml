@@ -140,7 +140,7 @@ jobs:
 
       - name: Upload generated diagrams (always)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: generated-diagrams-${{ matrix.platform == 'linux/amd64' && 'linux-amd64' || 'linux-arm64' }}
           path: /tmp/tests-output
